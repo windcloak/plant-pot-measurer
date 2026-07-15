@@ -44,8 +44,7 @@ class _AnnotateFlowScreenState extends State<AnnotateFlowScreen> {
       title: 'Calibrate: reference object',
       instructions:
           'Tap the two ends of your reference object '
-          '(${widget.session.referenceObject.isCustom ? 'your custom object' : widget.session.referenceObject.name}) '
-          'in the photo.',
+          '(${widget.session.referenceObject.name}) in the photo.',
       color: Colors.amber.shade700,
       startLabel: '1',
       endLabel: '2',

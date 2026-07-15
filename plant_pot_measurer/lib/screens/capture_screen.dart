@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../models/measurement_session.dart';
 import '../models/reference_object.dart';
+import '../services/custom_reference_store.dart';
 import 'annotate_flow_screen.dart';
 
 /// Lets the user pick which reference object they'll place next to the pot,
@@ -21,28 +22,139 @@ class CaptureScreen extends StatefulWidget {
 class _CaptureScreenState extends State<CaptureScreen> {
   final _picker = ImagePicker();
   final _customLengthController = TextEditingController();
+  final _customNameController = TextEditingController();
   late ReferenceObject _selectedReference;
+  List<ReferenceObject> _savedReferences = [];
+  bool _saveCustomForLater = true;
   bool _isPicking = false;
 
   @override
   void initState() {
     super.initState();
     _selectedReference = widget.session.referenceObject;
+    _loadSavedReferences();
+  }
+
+  Future<void> _loadSavedReferences() async {
+    final saved = await CustomReferenceStore.load();
+    if (!mounted) return;
+    setState(() => _savedReferences = saved);
   }
 
   @override
   void dispose() {
     _customLengthController.dispose();
+    _customNameController.dispose();
     super.dispose();
   }
 
   double? get _customLength => double.tryParse(_customLengthController.text);
 
-  bool get _canProceed =>
-      !_selectedReference.isCustom || (_customLength ?? 0) > 0;
+  bool get _canProceed {
+    if (!_selectedReference.isCustom) return true;
+    if ((_customLength ?? 0) <= 0) return false;
+    if (_saveCustomForLater) {
+      return _customNameController.text.trim().isNotEmpty;
+    }
+    return true;
+  }
+
+  Future<void> _showManageSavedReferences() async {
+    await showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return SafeArea(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        'Saved reference objects',
+                        style: Theme.of(sheetContext).textTheme.titleMedium,
+                      ),
+                    ),
+                    Flexible(
+                      child: _savedReferences.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text('No saved reference objects yet.'),
+                            )
+                          : ListView(
+                              shrinkWrap: true,
+                              children: [
+                                for (final ref in _savedReferences)
+                                  ListTile(
+                                    leading: const Icon(Icons.bookmark_outline),
+                                    title: Text(ref.name),
+                                    subtitle: Text(
+                                      '${ref.lengthCm.toStringAsFixed(2)} cm',
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.delete_outline),
+                                      tooltip: 'Delete',
+                                      onPressed: () async {
+                                        await CustomReferenceStore.remove(
+                                          ref.id!,
+                                        );
+                                        setState(() {
+                                          _savedReferences = _savedReferences
+                                              .where((r) => r.id != ref.id)
+                                              .toList();
+                                          if (_selectedReference.id ==
+                                              ref.id) {
+                                            _selectedReference =
+                                                ReferenceObject
+                                                    .presets
+                                                    .first;
+                                          }
+                                        });
+                                        setSheetState(() {});
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _takePhoto(ImageSource source) async {
     if (!_canProceed || _isPicking) return;
+
+    var referenceToUse = _selectedReference;
+    if (_selectedReference.isCustom) {
+      final length = _customLength;
+      if (length == null || length <= 0) return;
+      final name = _customNameController.text.trim().isEmpty
+          ? 'Custom reference'
+          : _customNameController.text.trim();
+
+      if (_saveCustomForLater) {
+        referenceToUse = await CustomReferenceStore.add(
+          name: name,
+          lengthCm: length,
+        );
+        if (!mounted) return;
+        setState(() => _savedReferences = [..._savedReferences, referenceToUse]);
+      } else {
+        referenceToUse = ReferenceObject(name: name, lengthCm: length);
+      }
+    }
+
     setState(() => _isPicking = true);
     try {
       final picked = await _picker.pickImage(
@@ -52,8 +164,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       );
       if (picked == null || !mounted) return;
 
-      widget.session.referenceObject = _selectedReference;
-      widget.session.customReferenceLengthCm = _customLength;
+      widget.session.referenceObject = referenceToUse;
       widget.session.photo = File(picked.path);
 
       Navigator.of(context).push(
@@ -74,11 +185,23 @@ class _CaptureScreenState extends State<CaptureScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text(
-              'Choose a reference object',
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Choose a reference object',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (_savedReferences.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: _showManageSavedReferences,
+                    icon: const Icon(Icons.tune, size: 18),
+                    label: const Text('Manage'),
+                  ),
+              ],
             ),
-            const SizedBox(height: 4),
             Text(
               'You\'ll place this next to the pot in the photo so the app '
               'can convert pixels to real-world measurements.',
@@ -86,26 +209,56 @@ class _CaptureScreenState extends State<CaptureScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<ReferenceObject>(
+              key: ValueKey(_selectedReference),
               initialValue: _selectedReference,
               isExpanded: true,
               decoration: const InputDecoration(border: OutlineInputBorder()),
-              items: ReferenceObject.presets
-                  .map(
-                    (ref) => DropdownMenuItem(
-                      value: ref,
-                      child: Text(
-                        ref.isCustom
-                            ? ref.name
-                            : '${ref.name} — ${ref.lengthCm} cm',
+              items: [
+                ...ReferenceObject.presets
+                    .where((ref) => !ref.isCustom)
+                    .map(
+                      (ref) => DropdownMenuItem(
+                        value: ref,
+                        child: Text('${ref.name} — ${ref.lengthCm} cm'),
                       ),
                     ),
-                  )
-                  .toList(),
+                ..._savedReferences.map(
+                  (ref) => DropdownMenuItem(
+                    value: ref,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.bookmark, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${ref.name} — ${ref.lengthCm.toStringAsFixed(2)} cm',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: ReferenceObject.custom,
+                  child: Text(ReferenceObject.custom.name),
+                ),
+              ],
               onChanged: (value) {
                 if (value != null) setState(() => _selectedReference = value);
               },
             ),
             if (_selectedReference.isCustom) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _customNameController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Name (e.g. "My hand span")',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
               const SizedBox(height: 12),
               TextField(
                 controller: _customLengthController,
@@ -117,6 +270,15 @@ class _CaptureScreenState extends State<CaptureScreen> {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() {}),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _saveCustomForLater,
+                title: const Text('Save this reference for future pots'),
+                subtitle: const Text(
+                  'It\'ll show up in this list next time you measure.',
+                ),
+                onChanged: (v) => setState(() => _saveCustomForLater = v),
               ),
             ],
             const SizedBox(height: 24),

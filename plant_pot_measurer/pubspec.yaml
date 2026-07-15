@@ -38,6 +38,10 @@ dependencies:
   # Opens the native camera app to snap a photo of the pot.
   image_picker: ^1.1.2
 
+  # Persists saved custom reference objects (e.g. "my hand span = 18 cm")
+  # between app launches.
+  shared_preferences: ^2.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

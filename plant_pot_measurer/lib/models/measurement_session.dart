@@ -24,8 +24,10 @@ class PointPair {
 class MeasurementSession {
   File? photo;
 
+  /// Always a concrete reference (name + positive lengthCm) by the time
+  /// calibration happens — [CaptureScreen] resolves the "Custom / other"
+  /// sentinel into a real object (saved or one-off) before this is set.
   ReferenceObject referenceObject = ReferenceObject.presets.first;
-  double? customReferenceLengthCm;
 
   final PointPair calibration = PointPair();
   final PointPair topDiameter = PointPair();
@@ -34,17 +36,12 @@ class MeasurementSession {
 
   PotShape shape = PotShape.frustum;
 
-  double get referenceLengthCm =>
-      referenceObject.isCustom
-          ? (customReferenceLengthCm ?? 0)
-          : referenceObject.lengthCm;
-
   /// centimeters represented by one pixel in the source photo.
   double? get cmPerPixel {
-    if (!calibration.isComplete || referenceLengthCm <= 0) return null;
+    if (!calibration.isComplete || referenceObject.lengthCm <= 0) return null;
     final pixels = calibration.pixelDistance;
     if (pixels <= 0) return null;
-    return referenceLengthCm / pixels;
+    return referenceObject.lengthCm / pixels;
   }
 
   double? _cm(PointPair pair) {

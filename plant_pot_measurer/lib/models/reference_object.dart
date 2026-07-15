@@ -4,12 +4,38 @@ class ReferenceObject {
   final String name;
   final double lengthCm;
 
-  const ReferenceObject({required this.name, required this.lengthCm});
+  /// True if this came from the user's saved custom reference list
+  /// (persisted via CustomReferenceStore), as opposed to a built-in
+  /// preset or a one-off custom entry.
+  final bool isUserSaved;
 
-  /// True for the "enter your own length" option.
+  /// Unique id for saved references, used to look them up for deletion.
+  /// Null for built-in presets and one-off (unsaved) custom entries.
+  final String? id;
+
+  const ReferenceObject({
+    required this.name,
+    required this.lengthCm,
+    this.isUserSaved = false,
+    this.id,
+  });
+
+  /// True for the "enter your own length" sentinel option.
   bool get isCustom => lengthCm <= 0;
 
   static const custom = ReferenceObject(name: 'Custom / other', lengthCm: 0);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReferenceObject &&
+          other.name == name &&
+          other.lengthCm == lengthCm &&
+          other.isUserSaved == isUserSaved &&
+          other.id == id);
+
+  @override
+  int get hashCode => Object.hash(name, lengthCm, isUserSaved, id);
 
   /// Common household items with well-known, consistent dimensions.
   /// These are the "long edge" unless noted, since a long edge gives more
