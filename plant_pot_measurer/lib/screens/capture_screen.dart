@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/measurement_session.dart';
 import '../models/reference_object.dart';
 import '../services/custom_reference_store.dart';
+import '../services/last_reference_store.dart';
 import 'annotate_flow_screen.dart';
 
 /// Lets the user pick which reference object they'll place next to the pot,
@@ -23,7 +24,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
   final _picker = ImagePicker();
   final _customLengthController = TextEditingController();
   final _customNameController = TextEditingController();
-  late ReferenceObject _selectedReference;
+
+  /// Null means "nothing selected yet" — the dropdown shows a
+  /// "Select a reference object" hint until the user picks one, or until
+  /// a remembered last-used reference finishes loading.
+  ReferenceObject? _selectedReference;
   List<ReferenceObject> _savedReferences = [];
   bool _saveCustomForLater = true;
   bool _isPicking = false;
@@ -31,14 +36,17 @@ class _CaptureScreenState extends State<CaptureScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedReference = widget.session.referenceObject;
     _loadSavedReferences();
   }
 
   Future<void> _loadSavedReferences() async {
     final saved = await CustomReferenceStore.load();
+    final lastUsed = await LastReferenceStore.load(saved);
     if (!mounted) return;
-    setState(() => _savedReferences = saved);
+    setState(() {
+      _savedReferences = saved;
+      _selectedReference = lastUsed;
+    });
   }
 
   @override
@@ -51,7 +59,9 @@ class _CaptureScreenState extends State<CaptureScreen> {
   double? get _customLength => double.tryParse(_customLengthController.text);
 
   bool get _canProceed {
-    if (!_selectedReference.isCustom) return true;
+    final selected = _selectedReference;
+    if (selected == null) return false;
+    if (!selected.isCustom) return true;
     if ((_customLength ?? 0) <= 0) return false;
     if (_saveCustomForLater) {
       return _customNameController.text.trim().isNotEmpty;
@@ -106,12 +116,9 @@ class _CaptureScreenState extends State<CaptureScreen> {
                                           _savedReferences = _savedReferences
                                               .where((r) => r.id != ref.id)
                                               .toList();
-                                          if (_selectedReference.id ==
+                                          if (_selectedReference?.id ==
                                               ref.id) {
-                                            _selectedReference =
-                                                ReferenceObject
-                                                    .presets
-                                                    .first;
+                                            _selectedReference = null;
                                           }
                                         });
                                         setSheetState(() {});
@@ -134,9 +141,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   Future<void> _takePhoto(ImageSource source) async {
     if (!_canProceed || _isPicking) return;
+    final selected = _selectedReference;
+    if (selected == null) return;
 
-    var referenceToUse = _selectedReference;
-    if (_selectedReference.isCustom) {
+    var referenceToUse = selected;
+    if (selected.isCustom) {
       final length = _customLength;
       if (length == null || length <= 0) return;
       final name = _customNameController.text.trim().isEmpty
@@ -167,6 +176,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
       widget.session.resetMeasurementPoints();
       widget.session.referenceObject = referenceToUse;
       widget.session.photo = File(picked.path);
+      await LastReferenceStore.save(referenceToUse);
+      if (!mounted) return;
 
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -213,6 +224,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
               key: ValueKey(_selectedReference),
               initialValue: _selectedReference,
               isExpanded: true,
+              hint: const Text('Select a reference object'),
               decoration: const InputDecoration(border: OutlineInputBorder()),
               items: [
                 ...ReferenceObject.presets
@@ -249,7 +261,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 if (value != null) setState(() => _selectedReference = value);
               },
             ),
-            if (_selectedReference.isCustom) ...[
+            if (_selectedReference?.isCustom ?? false) ...[
               const SizedBox(height: 12),
               TextField(
                 controller: _customNameController,
