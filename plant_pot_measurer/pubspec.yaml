@@ -42,6 +42,10 @@ dependencies:
   # between app launches.
   shared_preferences: ^2.3.2
 
+  # Finds a permanent app-storage folder to keep copies of measurement
+  # photos for the measurement history screen.
+  path_provider: ^2.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

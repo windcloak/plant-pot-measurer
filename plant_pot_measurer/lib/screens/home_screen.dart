@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/measurement_session.dart';
 import 'capture_screen.dart';
+import 'history_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -9,7 +10,20 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Plant Pot Measurer')),
+      appBar: AppBar(
+        title: const Text('Plant Pot Measurer'),
+        actions: [
+          IconButton(
+            tooltip: 'Measurement history',
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
