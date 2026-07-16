@@ -17,7 +17,10 @@ Press F5 to run
 
 ![Screenshot of Reference object screen](assets/reference_object.png)
 
+I measured the length of my hand so it'll be easy to use as a reference when measuring pot size.
+
 ![Screenshot of measurement screen](assets/measure_pot.png)
+
 Measure the top rim diameter, bottom rim diameter, and height
 
 ![Screenshot of results](assets/results1.png)
