@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/measurement_session.dart';
 import '../models/pot_shape.dart';
+import '../widgets/pot_shape_icon.dart';
 import 'results_screen.dart';
 
 class ShapeSelectScreen extends StatefulWidget {
@@ -31,6 +32,19 @@ class _ShapeSelectScreenState extends State<ShapeSelectScreen> {
                     child: RadioListTile<PotShape>(
                       value: shape,
                       groupValue: _shape,
+                      controlAffinity: ListTileControlAffinity.trailing,
+                      secondary: Container(
+                        width: 56,
+                        height: 56,
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: PotShapeIcon(shape: shape, size: 48),
+                      ),
                       title: Text(shape.label),
                       subtitle: Text(shape.description),
                       onChanged: (value) {
