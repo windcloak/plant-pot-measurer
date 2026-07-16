@@ -16,6 +16,11 @@ class PointPair {
     if (!isComplete) return 0;
     return (end! - start!).distance;
   }
+
+  void clear() {
+    start = null;
+    end = null;
+  }
 }
 
 /// Holds all the state for one measuring session: the photo, the
@@ -56,4 +61,14 @@ class MeasurementSession {
 
   bool get isReadyForResults =>
       topDiameterCm != null && bottomDiameterCm != null && heightCm != null;
+
+  /// Clears all tapped points. Call this whenever a new photo replaces
+  /// the current one — old points are pixel coordinates on the previous
+  /// photo and are meaningless (and visually wrong) on a new one.
+  void resetMeasurementPoints() {
+    calibration.clear();
+    topDiameter.clear();
+    bottomDiameter.clear();
+    height.clear();
+  }
 }

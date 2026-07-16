@@ -164,6 +164,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       );
       if (picked == null || !mounted) return;
 
+      widget.session.resetMeasurementPoints();
       widget.session.referenceObject = referenceToUse;
       widget.session.photo = File(picked.path);
 
