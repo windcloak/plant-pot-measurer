@@ -55,6 +55,11 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   final _heightController = TextEditingController();
   bool _remember = true;
 
+  /// Unit used to enter these real-world measurements. Starts in sync
+  /// with the app's global preference but can be switched locally for
+  /// this calibration without touching Settings.
+  late MeasurementUnit _entryUnit = widget.unit;
+
   @override
   void dispose() {
     _topController.dispose();
@@ -64,7 +69,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   }
 
   void _submit() {
-    final unit = widget.unit;
+    final unit = _entryUnit;
     final enteredTop = double.tryParse(_topController.text);
     final enteredBottom = double.tryParse(_bottomController.text);
     final enteredHeight = double.tryParse(_heightController.text);
@@ -99,7 +104,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final unit = widget.unit;
+    final unit = _entryUnit;
     final unitLabel = unit.abbreviation;
     return Scaffold(
       appBar: AppBar(title: const Text('Calibrate accuracy')),
@@ -113,7 +118,34 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
               'match.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Measuring in',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                SegmentedButton<MeasurementUnit>(
+                  segments: const [
+                    ButtonSegment(
+                      value: MeasurementUnit.centimeters,
+                      label: Text('cm'),
+                    ),
+                    ButtonSegment(
+                      value: MeasurementUnit.inches,
+                      label: Text('in'),
+                    ),
+                  ],
+                  selected: {_entryUnit},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) {
+                    setState(() => _entryUnit = selection.first);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _topController,
               keyboardType: const TextInputType.numberWithOptions(
