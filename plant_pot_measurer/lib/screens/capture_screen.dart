@@ -37,6 +37,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
   bool _isPicking = false;
   MeasurementUnit _unit = UnitPreferenceStore.defaultUnit;
 
+  /// Unit used just for the "Known length" custom-reference field. Starts
+  /// in sync with the global default but can be flipped locally without
+  /// touching the app-wide Settings preference.
+  MeasurementUnit _customLengthUnit = UnitPreferenceStore.defaultUnit;
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +53,10 @@ class _CaptureScreenState extends State<CaptureScreen> {
   Future<void> _loadUnit() async {
     final unit = await UnitPreferenceStore.load();
     if (!mounted) return;
-    setState(() => _unit = unit);
+    setState(() {
+      _unit = unit;
+      _customLengthUnit = unit;
+    });
   }
 
   Future<void> _loadSavedReferences() async {
@@ -80,7 +88,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
   /// The entered custom length converted to centimeters, ready to store.
   double? get _customLengthCm {
     final entered = _enteredCustomLength;
-    return entered == null ? null : _unit.toCm(entered);
+    return entered == null ? null : _customLengthUnit.toCm(entered);
   }
 
   bool get _canProceed {
@@ -305,16 +313,41 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _customLengthController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Known length (${_unit.abbreviation})',
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (_) => setState(() {}),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _customLengthController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText:
+                            'Known length (${_customLengthUnit.abbreviation})',
+                        border: const OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SegmentedButton<MeasurementUnit>(
+                    segments: const [
+                      ButtonSegment(
+                        value: MeasurementUnit.centimeters,
+                        label: Text('cm'),
+                      ),
+                      ButtonSegment(
+                        value: MeasurementUnit.inches,
+                        label: Text('in'),
+                      ),
+                    ],
+                    selected: {_customLengthUnit},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) {
+                      setState(() => _customLengthUnit = selection.first);
+                    },
+                  ),
+                ],
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
