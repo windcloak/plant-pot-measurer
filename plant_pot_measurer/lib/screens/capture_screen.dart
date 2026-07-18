@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../models/measurement_session.dart';
 import '../models/reference_object.dart';
+import '../services/calibration_store.dart';
 import '../services/custom_reference_store.dart';
 import '../services/last_reference_store.dart';
 import 'annotate_flow_screen.dart';
@@ -37,6 +38,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
   void initState() {
     super.initState();
     _loadSavedReferences();
+    _loadCorrectionFactor();
   }
 
   Future<void> _loadSavedReferences() async {
@@ -47,6 +49,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
       _savedReferences = saved;
       _selectedReference = lastUsed;
     });
+  }
+
+  Future<void> _loadCorrectionFactor() async {
+    final factor = await CalibrationStore.load();
+    widget.session.correctionFactor = factor;
   }
 
   @override

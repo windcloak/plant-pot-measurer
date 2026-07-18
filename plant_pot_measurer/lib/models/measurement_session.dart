@@ -41,12 +41,19 @@ class MeasurementSession {
 
   PotShape shape = PotShape.frustum;
 
-  /// centimeters represented by one pixel in the source photo.
+  /// A multiplicative correction factor derived from the user comparing
+  /// the app's measurements against a real-world (e.g. ruler) measurement.
+  /// 1.0 means no correction. Loaded from [CalibrationStore] when a new
+  /// session starts, and can be refined from the results screen.
+  double correctionFactor = 1.0;
+
+  /// centimeters represented by one pixel in the source photo, including
+  /// the user's personal accuracy correction (if any).
   double? get cmPerPixel {
     if (!calibration.isComplete || referenceObject.lengthCm <= 0) return null;
     final pixels = calibration.pixelDistance;
     if (pixels <= 0) return null;
-    return referenceObject.lengthCm / pixels;
+    return (referenceObject.lengthCm / pixels) * correctionFactor;
   }
 
   double? _cm(PointPair pair) {

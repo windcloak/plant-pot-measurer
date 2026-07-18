@@ -110,6 +110,33 @@ class MeasurementHistoryStore {
     await _persist(items);
   }
 
+  /// Updates the dimensions of an already-saved entry in place (id,
+  /// timestamp, photo, shape, and reference name are kept as-is). Used
+  /// when the user calibrates against a real-world measurement after the
+  /// entry was already saved, so history reflects the corrected numbers.
+  static Future<void> updateDimensions({
+    required String id,
+    required double topDiameterCm,
+    required double bottomDiameterCm,
+    required double heightCm,
+  }) async {
+    final items = await load();
+    final index = items.indexWhere((m) => m.id == id);
+    if (index == -1) return;
+    final old = items[index];
+    items[index] = SavedMeasurement(
+      id: old.id,
+      timestamp: old.timestamp,
+      photoPath: old.photoPath,
+      topDiameterCm: topDiameterCm,
+      bottomDiameterCm: bottomDiameterCm,
+      heightCm: heightCm,
+      shape: old.shape,
+      referenceObjectName: old.referenceObjectName,
+    );
+    await _persist(items);
+  }
+
   static Future<String?> _copyPhoto(String? sourcePath) async {
     if (sourcePath == null) return null;
     try {
