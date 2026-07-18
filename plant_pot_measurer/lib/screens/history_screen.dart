@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../models/measurement_unit.dart';
 import '../models/saved_measurement.dart';
 import '../services/measurement_history_store.dart';
+import '../services/unit_preference_store.dart';
 import '../utils/volume_calculator.dart';
 import 'history_detail_screen.dart';
 
@@ -31,16 +33,23 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   List<SavedMeasurement>? _items;
+  MeasurementUnit _unit = UnitPreferenceStore.defaultUnit;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadUnit();
   }
 
   Future<void> _load() async {
     final items = await MeasurementHistoryStore.load();
     if (mounted) setState(() => _items = items);
+  }
+
+  Future<void> _loadUnit() async {
+    final unit = await UnitPreferenceStore.load();
+    if (mounted) setState(() => _unit = unit);
   }
 
   Future<void> _delete(SavedMeasurement item) async {
@@ -112,9 +121,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             )
                           : const Icon(Icons.local_florist, size: 40),
                       title: Text(
-                        '${item.topDiameterCm.toStringAsFixed(1)} × '
-                        '${item.bottomDiameterCm.toStringAsFixed(1)} × '
-                        '${item.heightCm.toStringAsFixed(1)} cm',
+                        '${_unit.fromCm(item.topDiameterCm).toStringAsFixed(1)} × '
+                        '${_unit.fromCm(item.bottomDiameterCm).toStringAsFixed(1)} × '
+                        '${_unit.fromCm(item.heightCm).toStringAsFixed(1)} '
+                        '${_unit.abbreviation}',
                       ),
                       subtitle: Text(_formatTimestamp(item.timestamp)),
                       trailing: Text(
@@ -125,8 +135,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) =>
-                                HistoryDetailScreen(measurement: item),
+                            builder: (_) => HistoryDetailScreen(
+                              measurement: item,
+                              unit: _unit,
+                            ),
                           ),
                         );
                       },

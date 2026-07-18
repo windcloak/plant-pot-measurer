@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/measurement_session.dart';
 import 'capture_screen.dart';
 import 'history_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -19,6 +20,15 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              );
+            },
+          ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
           ),

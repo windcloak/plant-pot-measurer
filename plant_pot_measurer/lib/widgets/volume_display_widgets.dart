@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 
+import '../models/measurement_unit.dart';
 import '../utils/nursery_gallon_converter.dart';
 import '../utils/volume_calculator.dart';
 
-const _cmToInch = 1 / 2.54;
-
-/// A single "label: value in cm (value in in)" row, used for top/bottom
-/// diameter and height. Shared by the results screen and the history
-/// detail screen.
+/// A single "label: value in preferred unit (value in the other unit)"
+/// row, used for top/bottom diameter and height. Shared by the results
+/// screen and the history detail screen.
 class DimensionRow extends StatelessWidget {
   final String label;
   final double valueCm;
+  final MeasurementUnit unit;
 
-  const DimensionRow({super.key, required this.label, required this.valueCm});
+  const DimensionRow({
+    super.key,
+    required this.label,
+    required this.valueCm,
+    this.unit = MeasurementUnit.centimeters,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final inches = valueCm * _cmToInch;
+    final primary = unit.fromCm(valueCm);
+    final secondaryUnit = unit.other;
+    final secondary = secondaryUnit.fromCm(valueCm);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -24,7 +31,8 @@ class DimensionRow extends StatelessWidget {
         children: [
           Text(label, style: Theme.of(context).textTheme.bodyLarge),
           Text(
-            '${valueCm.toStringAsFixed(1)} cm  (${inches.toStringAsFixed(1)} in)',
+            '${primary.toStringAsFixed(1)} ${unit.abbreviation}  '
+            '(${secondary.toStringAsFixed(1)} ${secondaryUnit.abbreviation})',
             style: Theme.of(
               context,
             ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),

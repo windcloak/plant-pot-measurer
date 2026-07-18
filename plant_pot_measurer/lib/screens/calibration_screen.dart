@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// What the user entered on the calibration screen.
+import '../models/measurement_unit.dart';
+
+/// What the user entered on the calibration screen, always converted to
+/// centimeters regardless of which unit they typed in.
 class CalibrationInput {
-  final double realTop;
-  final double realBottom;
-  final double realHeight;
+  final double realTopCm;
+  final double realBottomCm;
+  final double realHeightCm;
   final bool remember;
 
   const CalibrationInput({
-    required this.realTop,
-    required this.realBottom,
-    required this.realHeight,
+    required this.realTopCm,
+    required this.realBottomCm,
+    required this.realHeightCm,
     required this.remember,
   });
 }
@@ -31,6 +34,7 @@ class CalibrationScreen extends StatefulWidget {
   final double appBottomDiameterCm;
   final double appHeightCm;
   final bool showResetOption;
+  final MeasurementUnit unit;
 
   const CalibrationScreen({
     super.key,
@@ -38,6 +42,7 @@ class CalibrationScreen extends StatefulWidget {
     required this.appBottomDiameterCm,
     required this.appHeightCm,
     required this.showResetOption,
+    required this.unit,
   });
 
   @override
@@ -59,15 +64,16 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   }
 
   void _submit() {
-    final realTop = double.tryParse(_topController.text);
-    final realBottom = double.tryParse(_bottomController.text);
-    final realHeight = double.tryParse(_heightController.text);
-    if (realTop == null ||
-        realTop <= 0 ||
-        realBottom == null ||
-        realBottom <= 0 ||
-        realHeight == null ||
-        realHeight <= 0) {
+    final unit = widget.unit;
+    final enteredTop = double.tryParse(_topController.text);
+    final enteredBottom = double.tryParse(_bottomController.text);
+    final enteredHeight = double.tryParse(_heightController.text);
+    if (enteredTop == null ||
+        enteredTop <= 0 ||
+        enteredBottom == null ||
+        enteredBottom <= 0 ||
+        enteredHeight == null ||
+        enteredHeight <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Enter all three measurements as positive numbers.'),
@@ -78,9 +84,9 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     FocusScope.of(context).unfocus();
     Navigator.of(context).pop(
       CalibrationInput(
-        realTop: realTop,
-        realBottom: realBottom,
-        realHeight: realHeight,
+        realTopCm: unit.toCm(enteredTop),
+        realBottomCm: unit.toCm(enteredBottom),
+        realHeightCm: unit.toCm(enteredHeight),
         remember: _remember,
       ),
     );
@@ -93,6 +99,8 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final unit = widget.unit;
+    final unitLabel = unit.abbreviation;
     return Scaffold(
       appBar: AppBar(title: const Text('Calibrate accuracy')),
       body: SafeArea(
@@ -112,9 +120,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 decimal: true,
               ),
               decoration: InputDecoration(
-                labelText: 'Actual top diameter (cm)',
+                labelText: 'Actual top diameter ($unitLabel)',
                 hintText:
-                    'App measured ${widget.appTopDiameterCm.toStringAsFixed(1)}',
+                    'App measured '
+                    '${unit.fromCm(widget.appTopDiameterCm).toStringAsFixed(1)}',
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -125,9 +134,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 decimal: true,
               ),
               decoration: InputDecoration(
-                labelText: 'Actual bottom diameter (cm)',
+                labelText: 'Actual bottom diameter ($unitLabel)',
                 hintText:
-                    'App measured ${widget.appBottomDiameterCm.toStringAsFixed(1)}',
+                    'App measured '
+                    '${unit.fromCm(widget.appBottomDiameterCm).toStringAsFixed(1)}',
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -138,9 +148,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 decimal: true,
               ),
               decoration: InputDecoration(
-                labelText: 'Actual height (cm)',
+                labelText: 'Actual height ($unitLabel)',
                 hintText:
-                    'App measured ${widget.appHeightCm.toStringAsFixed(1)}',
+                    'App measured '
+                    '${unit.fromCm(widget.appHeightCm).toStringAsFixed(1)}',
                 border: const OutlineInputBorder(),
               ),
               textInputAction: TextInputAction.done,

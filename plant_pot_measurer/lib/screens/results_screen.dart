@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../models/measurement_session.dart';
+import '../models/measurement_unit.dart';
 import '../models/pot_shape.dart';
 import '../services/calibration_store.dart';
 import '../services/measurement_history_store.dart';
+import '../services/unit_preference_store.dart';
 import '../utils/volume_calculator.dart';
 import '../widgets/volume_display_widgets.dart';
 import 'calibration_screen.dart';
@@ -20,11 +22,19 @@ class ResultsScreen extends StatefulWidget {
 
 class _ResultsScreenState extends State<ResultsScreen> {
   String? _historyEntryId;
+  MeasurementUnit _unit = UnitPreferenceStore.defaultUnit;
 
   @override
   void initState() {
     super.initState();
     _saveToHistory();
+    _loadUnit();
+  }
+
+  Future<void> _loadUnit() async {
+    final unit = await UnitPreferenceStore.load();
+    if (!mounted) return;
+    setState(() => _unit = unit);
   }
 
   Future<void> _saveToHistory() async {
@@ -59,6 +69,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
           appBottomDiameterCm: appBottomD,
           appHeightCm: appHeight,
           showResetOption: showResetOption,
+          unit: _unit,
         ),
       ),
     );
@@ -77,9 +88,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     if (result is CalibrationInput) {
       final ratios = [
-        result.realTop / appTopD,
-        result.realBottom / appBottomD,
-        result.realHeight / appHeight,
+        result.realTopCm / appTopD,
+        result.realBottomCm / appBottomD,
+        result.realHeightCm / appHeight,
       ];
       final avgRatio = ratios.reduce((a, b) => a + b) / ratios.length;
       final newFactor = session.correctionFactor * avgRatio;
@@ -160,9 +171,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
               ),
             const SizedBox(height: 20),
-            DimensionRow(label: 'Top diameter', valueCm: topD),
-            DimensionRow(label: 'Bottom diameter', valueCm: bottomD),
-            DimensionRow(label: 'Height', valueCm: h),
+            DimensionRow(label: 'Top diameter', valueCm: topD, unit: _unit),
+            DimensionRow(
+              label: 'Bottom diameter',
+              valueCm: bottomD,
+              unit: _unit,
+            ),
+            DimensionRow(label: 'Height', valueCm: h, unit: _unit),
             const SizedBox(height: 8),
             Text(
               'Shape: ${session.shape.label}',

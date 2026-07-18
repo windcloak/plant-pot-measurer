@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/measurement_session.dart';
+import '../models/measurement_unit.dart';
 import '../models/reference_object.dart';
 import '../services/calibration_store.dart';
 import '../services/custom_reference_store.dart';
 import '../services/last_reference_store.dart';
+import '../services/unit_preference_store.dart';
 import 'annotate_flow_screen.dart';
 
 /// Lets the user pick which reference object they'll place next to the pot,
@@ -33,12 +35,20 @@ class _CaptureScreenState extends State<CaptureScreen> {
   List<ReferenceObject> _savedReferences = [];
   bool _saveCustomForLater = true;
   bool _isPicking = false;
+  MeasurementUnit _unit = UnitPreferenceStore.defaultUnit;
 
   @override
   void initState() {
     super.initState();
     _loadSavedReferences();
     _loadCorrectionFactor();
+    _loadUnit();
+  }
+
+  Future<void> _loadUnit() async {
+    final unit = await UnitPreferenceStore.load();
+    if (!mounted) return;
+    setState(() => _unit = unit);
   }
 
   Future<void> _loadSavedReferences() async {
@@ -63,13 +73,21 @@ class _CaptureScreenState extends State<CaptureScreen> {
     super.dispose();
   }
 
-  double? get _customLength => double.tryParse(_customLengthController.text);
+  /// Raw value the user typed, in the current display unit (not cm).
+  double? get _enteredCustomLength =>
+      double.tryParse(_customLengthController.text);
+
+  /// The entered custom length converted to centimeters, ready to store.
+  double? get _customLengthCm {
+    final entered = _enteredCustomLength;
+    return entered == null ? null : _unit.toCm(entered);
+  }
 
   bool get _canProceed {
     final selected = _selectedReference;
     if (selected == null) return false;
     if (!selected.isCustom) return true;
-    if ((_customLength ?? 0) <= 0) return false;
+    if ((_customLengthCm ?? 0) <= 0) return false;
     if (_saveCustomForLater) {
       return _customNameController.text.trim().isNotEmpty;
     }
@@ -110,7 +128,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
                                     leading: const Icon(Icons.bookmark_outline),
                                     title: Text(ref.name),
                                     subtitle: Text(
-                                      '${ref.lengthCm.toStringAsFixed(2)} cm',
+                                      '${_unit.fromCm(ref.lengthCm).toStringAsFixed(2)} '
+                                      '${_unit.abbreviation}',
                                     ),
                                     trailing: IconButton(
                                       icon: const Icon(Icons.delete_outline),
@@ -153,7 +172,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
     var referenceToUse = selected;
     if (selected.isCustom) {
-      final length = _customLength;
+      final length = _customLengthCm;
       if (length == null || length <= 0) return;
       final name = _customNameController.text.trim().isEmpty
           ? 'Custom reference'
@@ -239,7 +258,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
                     .map(
                       (ref) => DropdownMenuItem(
                         value: ref,
-                        child: Text('${ref.name} — ${ref.lengthCm} cm'),
+                        child: Text(
+                          '${ref.name} — '
+                          '${_unit.fromCm(ref.lengthCm).toStringAsFixed(2)} '
+                          '${_unit.abbreviation}',
+                        ),
                       ),
                     ),
                 ..._savedReferences.map(
@@ -251,7 +274,9 @@ class _CaptureScreenState extends State<CaptureScreen> {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            '${ref.name} — ${ref.lengthCm.toStringAsFixed(2)} cm',
+                            '${ref.name} — '
+                            '${_unit.fromCm(ref.lengthCm).toStringAsFixed(2)} '
+                            '${_unit.abbreviation}',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -285,9 +310,9 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'Known length (cm)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'Known length (${_unit.abbreviation})',
+                  border: const OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() {}),
               ),

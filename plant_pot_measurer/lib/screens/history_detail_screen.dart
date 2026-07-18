@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../models/measurement_unit.dart';
 import '../models/pot_shape.dart';
 import '../models/saved_measurement.dart';
 import '../widgets/volume_display_widgets.dart';
@@ -10,8 +11,13 @@ import '../widgets/volume_display_widgets.dart';
 /// cards shown right after measuring a pot.
 class HistoryDetailScreen extends StatelessWidget {
   final SavedMeasurement measurement;
+  final MeasurementUnit unit;
 
-  const HistoryDetailScreen({super.key, required this.measurement});
+  const HistoryDetailScreen({
+    super.key,
+    required this.measurement,
+    this.unit = MeasurementUnit.centimeters,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +50,18 @@ class HistoryDetailScreen extends StatelessWidget {
             DimensionRow(
               label: 'Top diameter',
               valueCm: measurement.topDiameterCm,
+              unit: unit,
             ),
             DimensionRow(
               label: 'Bottom diameter',
               valueCm: measurement.bottomDiameterCm,
+              unit: unit,
             ),
-            DimensionRow(label: 'Height', valueCm: measurement.heightCm),
+            DimensionRow(
+              label: 'Height',
+              valueCm: measurement.heightCm,
+              unit: unit,
+            ),
             const SizedBox(height: 8),
             Text(
               'Shape: ${measurement.shape.label}',
