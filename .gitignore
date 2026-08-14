@@ -25,3 +25,28 @@ doc/api/
 
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS / editor cruft
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# Coverage / symbolication / obfuscation
+/coverage/
+app.*.symbols
+app.*.map.json
+
+# Android build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
