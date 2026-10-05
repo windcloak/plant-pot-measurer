@@ -1,4 +1,4 @@
-package com.example.plant_pot_measurer
+package com.mayguo.plantpotmeasurer
 
 import io.flutter.embedding.android.FlutterActivity
 
